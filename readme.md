@@ -1,186 +1,326 @@
-================================================================================
-CodeGuard-Py: Detector de Plagio con Semántica Ligera y Manipulación Automática
-================================================================================
-Asignatura : Lenguajes de Programación
-Tecnologías: Python 3, ANTLR v4 (grammars-v4 Python3) y Streamlit
+# CodeGuard-Py
+### Detector de Plagio con Semántica Ligera y Manipulación Automática de Código
 
---------------------------------------------------------------------------------
-1. DESCRIPCIÓN DEL PROYECTO
---------------------------------------------------------------------------------
-CodeGuard-Py es una herramienta de análisis estático y manipulación automática de
-código fuente en Python 3 desarrollada con ANTLR v4. A partir del recorrido del
-árbol sintáctico (ParseTreeListener), el sistema combina análisis estructural
-con un nivel de semántica ligera:
+**Tematica:** Lenguajes de Programación  
+**Tecnologías:** Python 3, ANTLR v4 (grammars-v4 Python3) y Streamlit.
 
-  - Tabla de símbolos local por función: clasifica identificadores según su rol
-    semántico (parámetros como PARAM_i y variables locales como LOCAL_i) y
-    conserva llamadas a funciones nativas de Python (len, range, print, etc.).
-  - Rastreo básico Def-Use (Código Muerto): contabiliza definiciones y usos de
-    cada variable local para detectar y eliminar asignaciones de variables que
-    nunca se utilizan (usos == 0).
-  - Detección de similitud: extrae n-gramas (k-shingles) de la huella estructural
-    depurada y calcula el coeficiente de similitud de Jaccard entre funciones.
-  - Manipulación automática (TokenStreamRewriter): genera dos archivos .py
-    modificados sin alterar la sintaxis válida de Python.
+---
 
---------------------------------------------------------------------------------
-2. ESTRUCTURA DE CARPETAS
---------------------------------------------------------------------------------
+## 1. Descripción del proyecto
+
+CodeGuard-Py es una herramienta de análisis estático y manipulación automática de código fuente en Python 3, desarrollada mediante ANTLR v4.
+
+A partir del recorrido del árbol sintáctico (*ParseTreeListener*), el sistema combina el análisis estructural con un nivel de semántica ligera para identificar similitudes entre implementaciones de código, incluso cuando estas presentan modificaciones en sus identificadores o contienen código innecesario.
+
+Entre sus principales funcionalidades se encuentran:
+
+- **Tabla de símbolos local por función:** clasifica los identificadores según su rol semántico, utilizando identificadores normalizados como `PARAM_i` para parámetros y `LOCAL_i` para variables locales. También conserva la identidad de las funciones nativas de Python (`len`, `range`, `print`, entre otras).
+- **Rastreo Def-Use y detección de código muerto:** contabiliza las definiciones y los usos de las variables locales para identificar y eliminar asignaciones de variables que nunca se utilizan (`usos == 0`).
+- **Detección de similitud estructural:** extrae n-gramas (*k-shingles*) de las huellas estructurales depuradas y calcula el coeficiente de similitud de Jaccard entre funciones.
+- **Manipulación automática del código:** utiliza `TokenStreamRewriter` para generar dos versiones modificadas del código fuente, preservando la sintaxis válida de Python.
+
+## 2. Estructura del proyecto
+
+La organización de los directorios y archivos es la siguiente:
+
+```text
 CodeGuard-Py/
-├── gramatica/                  # Gramática oficial Python 3 (.g4) y scripts base
+│
+├── gramatica/
 │   ├── Python3Lexer.g4
 │   ├── Python3Parser.g4
 │   ├── Python3LexerBase.py
 │   ├── Python3ParserBase.py
 │   └── transformGrammar.py
-├── src/                        # Código fuente de la aplicación
-│   ├── generated/              # Lexer, Parser y Listener generados por ANTLR
-│   ├── codeguard_py.py         # Motor de análisis, tabla de símbolos y CLI
-│   └── app.py                  # Interfaz gráfica web en Streamlit
-├── ejemplos/                   # Casos de prueba y carpeta de salidas
-│   ├── entrada_original.py
-│   ├── entrada_plagio_camuflado.py
-│   ├── entrada_independiente.py
-│   └── salidas/
-└── README.txt                  # Este manual de instalación y ejecución
+│
+├── src/
+│   ├── generated/
+│   │   ├── Python3Lexer.py
+│   │   ├── Python3Parser.py
+│   │   └── Python3ParserListener.py
+│   │
+│   ├── codeguard_py.py
+│   └── app.py
+│
+│
+└── README.md
+```
 
---------------------------------------------------------------------------------
-3. REQUISITOS PREVIOS
---------------------------------------------------------------------------------
-  - Python 3.10 o superior.
-  - Conexión a internet la primera vez que se instalen dependencias con pip.
-  - Java (JRE/JDK 11+): únicamente necesario si se desea recompilar los
-    archivos .g4 desde cero usando antlr4-tools. (Para ejecutar la aplicación
-    directamente usando los archivos ya compilados en src/generated/ NO se
-    requiere Java).
+**Descripción de los directorios principales:**
 
---------------------------------------------------------------------------------
-4. INSTALACIÓN DE DEPENDENCIAS
---------------------------------------------------------------------------------
-Ubíquese en la carpeta raíz del proyecto (CodeGuard-Py/) y elija una de las
-siguientes opciones según su sistema operativo:
+- `gramatica/`: contiene la gramática de Python 3, los archivos base y los scripts necesarios para su adaptación.
+- `src/`: contiene el código fuente de la aplicación.
+- `src/generated/`: almacena los archivos generados por ANTLR v4 (Lexer, Parser y Listener), necesarios para analizar el código.
+- `ejemplos/`: contiene los archivos de prueba utilizados para demostrar el funcionamiento del detector.
+- `ejemplos/salidas/`: almacena los archivos generados durante el análisis mediante la CLI.
 
-OPCIÓN A: Usando entorno virtual venv (RECOMENDADA - Linux / Arch / Ubuntu / Mac)
-Evita conflictos con paquetes del sistema y soluciona el bloqueo PEP 668
-("externally-managed-environment"):
+## 3. Requisitos previos
 
-  1. Crear el entorno virtual:
-     python3 -m venv .venv
+Antes de instalar el proyecto, es necesario contar con los siguientes componentes:
 
-  2. Activar el entorno virtual:
-     - En Linux / macOS:
-       source .venv/bin/activate
-     - En Windows (PowerShell):
-       .venv\Scripts\Activate.ps1
+- **Python 3.10 o superior.**
+- **Conexión a Internet:** necesaria inicialmente para descargar las dependencias mediante `pip`.
+- **Java (JRE/JDK 11 o superior):** únicamente necesario si se desea recompilar los archivos de gramática `.g4` utilizando ANTLR. Para ejecutar la aplicación con los archivos previamente compilados incluidos en `src/generated/`, no se requiere Java.
 
-  3. Instalar las dependencias dentro del entorno activo:
-     pip install antlr4-python3-runtime antlr4-tools streamlit
+## 4. Instalación de dependencias
 
-OPCIÓN B: Instalación directa (Windows o entornos sin restricción PEP 668)
-Si su sistema permite instalaciones globales con pip:
+Ubíquese en el directorio raíz del proyecto (`CodeGuard-Py/`) y seleccione una de las siguientes alternativas según su sistema operativo.
 
-  pip install antlr4-python3-runtime antlr4-tools streamlit
+### Opción A. Instalación mediante entorno virtual (recomendada)
 
---------------------------------------------------------------------------------
-5. COMPILACIÓN DE LA GRAMÁTICA ANTLR v4 (OPCIONAL)
---------------------------------------------------------------------------------
-Nota: El directorio src/generated/ ya incluye el Lexer y Parser compilados y
-listos para usar. Si desea regenerarlos manualmente desde gramatica/:
+Se recomienda utilizar un entorno virtual para evitar conflictos con las dependencias del sistema y prevenir restricciones de instalación como las establecidas por PEP 668 en distribuciones Linux modernas.
 
-  1. Ingrese a la carpeta de la gramática y adapte los predicados a Python 3:
-     cd gramatica
-     python3 transformGrammar.py
+**1. Crear el entorno virtual:**
 
-  2. Compile los archivos .g4 especificando explícitamente la versión de ANTLR
-     (debe coincidir con la versión de antlr4-python3-runtime instalada, ej. 4.13.2):
-     ANTLR4_TOOLS_ANTLR_VERSION=4.13.2 antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+```bash
+python3 -m venv .venv
+```
 
-     (En Windows PowerShell):
-     $env:ANTLR4_TOOLS_ANTLR_VERSION="4.13.2"; antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+**2. Activar el entorno virtual:**
 
-  3. Copie las clases base al directorio generado y regrese a la raíz:
-     cp Python3LexerBase.py Python3ParserBase.py ../src/generated/
-     cd ..
+Linux / macOS:
 
---------------------------------------------------------------------------------
-6. EJECUCIÓN DE LA APLICACIÓN
---------------------------------------------------------------------------------
-Asegúrese de estar en la carpeta raíz (CodeGuard-Py/) y tener el entorno
-virtual activado (si usó la Opción A).
+```bash
+source .venv/bin/activate
+```
 
-MODO 1: Interfaz Gráfica Web con Streamlit (Recomendado)
-  Ejecute:
-    streamlit run src/app.py
+Windows (PowerShell):
 
-  Se abrirá automáticamente una pestaña en su navegador (http://localhost:8501).
-  Desde allí podrá:
-    - Subir sus propios archivos .py (Archivo Base y Archivo Sospechoso).
-    - Probar los escenarios integrados desde la barra lateral ("Demo: Plagio
-      Camuflado" y "Demo: Código Independiente").
-    - Ajustar el umbral de similitud (%) y el tamaño de n-gramas.
-    - Inspeccionar la tabla de símbolos (Def-Use) y descargar los archivos
-      manipulados.
+```powershell
+.venv\Scripts\Activate.ps1
+```
 
-MODO 2: Ejecución por Línea de Comandos (CLI)
-  1. Generar los 3 archivos de prueba en la carpeta ejemplos/:
-     python3 src/codeguard_py.py --crear-ejemplos
+**3. Instalar las dependencias:**
 
-  2. Analizar el caso de plagio camuflado:
-     python3 src/codeguard_py.py ejemplos/entrada_original.py ejemplos/entrada_plagio_camuflado.py
+```bash
+pip install antlr4-python3-runtime antlr4-tools streamlit
+```
 
-  3. Analizar el caso de implementación independiente:
-     python3 src/codeguard_py.py ejemplos/entrada_original.py ejemplos/entrada_independiente.py
+### Opción B. Instalación directa
 
-  Parámetros opcionales en CLI:
-    --umbral 75.0    Cambia el porcentaje mínimo de similitud para alertar.
-    --ngramas 5      Cambia el tamaño k de las ventanas de tokens.
+En sistemas Windows o entornos donde se permita la instalación global mediante `pip`, se pueden instalar las dependencias directamente:
 
---------------------------------------------------------------------------------
-7. ARCHIVOS DE SALIDA GENERADOS
---------------------------------------------------------------------------------
-Por cada evaluación realizada, CodeGuard-Py genera dos archivos manipulados
-mediante TokenStreamRewriter (disponibles para descarga en la interfaz web o
-guardados en ejemplos/salidas/ al usar la CLI):
+```bash
+pip install antlr4-python3-runtime antlr4-tools streamlit
+```
 
-  1. canonizado_<nombre>.py:
-     Versión estandarizada y depurada del archivo evaluado. Renombra funciones
-     (FUNC_i), parámetros (PARAM_i) y variables locales (LOCAL_i), omite todos
-     los comentarios (#) y elimina automáticamente las líneas de asignación de
-     variables muertas (declaradas y nunca usadas).
+## 5. Compilación de la gramática ANTLR v4 (opcional)
 
-  2. anotado_<nombre>.py:
-     Conserva el código fuente original intacto e inserta comentarios de alerta
-     ('# [ALERTA DE PLAGIO: XX.X% de similitud...]') justo encima de cada
-     función que supere el umbral establecido.
+El directorio `src/generated/` incluye los archivos del Lexer, Parser y Listener previamente compilados, por lo que este procedimiento no es necesario para ejecutar directamente la aplicación.
 
---------------------------------------------------------------------------------
-8. SOLUCIÓN DE PROBLEMAS FRECUENTES (TROUBLESHOOTING)
---------------------------------------------------------------------------------
-Problema 1: Error "externally-managed-environment" (PEP 668) al ejecutar pip.
-  - Causa: Distribuciones Linux modernas (como Arch Linux, Ubuntu 23.04+ o
-    Debian 12+) bloquean pip global para proteger los paquetes del sistema.
-  - Solución: Utilice un entorno virtual siguiendo los pasos de la Opción A en
-    la Sección 4 ("python3 -m venv .venv" y "source .venv/bin/activate").
+Si se desea regenerar los archivos a partir de la gramática original, se deben seguir estos pasos:
 
-Problema 2: Error "HTTP Error 400: Bad Request" o "FileNotFoundError: .../.m2/repository"
-            al ejecutar el comando antlr4.
-  - Causa: antlr4-tools intenta consultar una URL antigua de Maven Central para
-    detectar automáticamente la última versión de ANTLR disponible.
-  - Solución: Defina la variable de entorno ANTLR4_TOOLS_ANTLR_VERSION con la
-    misma versión de antlr4-python3-runtime instalada (puede verificarla con
-    "pip show antlr4-python3-runtime"). Ejemplo:
-    ANTLR4_TOOLS_ANTLR_VERSION=4.13.2 antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+**1. Ingresar al directorio de la gramática y ejecutar el script de adaptación:**
 
-Problema 3: Error "No se encontraron los archivos compilados de la gramática".
-  - Causa: Faltan los archivos generados o las clases base en src/generated/.
-  - Solución: Verifique que dentro de src/generated/ existan Python3Lexer.py,
-    Python3Parser.py, Python3ParserListener.py, Python3LexerBase.py y
-    Python3ParserBase.py (ver Sección 5).
+```bash
+cd gramatica
+python3 transformGrammar.py
+```
 
-Problema 4: Error de Java al intentar compilar los archivos .g4.
-  - Causa: antlr4-tools descarga y ejecuta el archivo .jar oficial de ANTLR, el
-    cual requiere tener Java instalado.
-  - Solución: Instale OpenJDK (ej. "sudo pacman -S jdk-openjdk" o
-    "sudo apt install default-jre") o utilice directamente los archivos ya
-    compilados incluidos en src/generated/.
-================================================================================
+**2. Compilar los archivos `.g4`:**
+
+Se debe especificar explícitamente la versión de ANTLR para garantizar su compatibilidad con `antlr4-python3-runtime`.
+
+Ejemplo utilizando la versión `4.13.2`:
+
+Linux / macOS:
+
+```bash
+ANTLR4_TOOLS_ANTLR_VERSION=4.13.2 antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+```
+
+Windows (PowerShell):
+
+```powershell
+$env:ANTLR4_TOOLS_ANTLR_VERSION="4.13.2"; antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+```
+
+**3. Copiar las clases base al directorio generado y regresar a la raíz del proyecto:**
+
+Linux / macOS:
+
+```bash
+cp Python3LexerBase.py Python3ParserBase.py ../src/generated/
+cd ..
+```
+
+## 6. Ejecución de la aplicación
+
+Asegúrese de estar ubicado en el directorio raíz del proyecto y de tener activado el entorno virtual, si utilizó la opción A.
+
+CodeGuard-Py ofrece dos modalidades de ejecución:
+
+### Modo 1. Interfaz gráfica web con Streamlit (recomendado)
+
+Para iniciar la aplicación, ejecute:
+
+```bash
+streamlit run src/app.py
+```
+
+Una vez iniciado el servidor, se abrirá una pestaña en el navegador con la siguiente dirección:
+
+[http://localhost:8501](http://localhost:8501)
+
+Desde la interfaz gráfica es posible:
+
+- Cargar archivos `.py` propios para realizar la comparación entre un archivo base y uno sospechoso.
+- Ejecutar escenarios de demostración integrados desde la barra lateral:
+  - `Demo: Plagio Camuflado`.
+  - `Demo: Código Independiente`.
+- Configurar el umbral de similitud en porcentaje.
+- Modificar el tamaño de los n-gramas utilizados en el análisis.
+- Inspeccionar la tabla de símbolos y los resultados del rastreo Def-Use.
+- Visualizar y descargar los archivos generados por el sistema.
+
+### Modo 2. Ejecución por línea de comandos (CLI)
+
+El sistema también permite realizar análisis directamente desde la terminal.
+
+**1. Generar los tres archivos de prueba en el directorio `ejemplos/`:**
+
+```bash
+python3 src/codeguard_py.py --crear-ejemplos
+```
+
+**2. Analizar un caso de plagio camuflado:**
+
+```bash
+python3 src/codeguard_py.py ejemplos/entrada_original.py ejemplos/entrada_plagio_camuflado.py
+```
+
+**3. Analizar una implementación independiente:**
+
+```bash
+python3 src/codeguard_py.py ejemplos/entrada_original.py ejemplos/entrada_independiente.py
+```
+
+**Parámetros opcionales:**
+
+| Parámetro | Descripción | Valor predeterminado |
+|---|---|---|
+| `--umbral` | Porcentaje mínimo de similitud para generar una alerta. | `70.0` |
+| `--ngramas` | Tamaño `k` de las ventanas de tokens utilizadas para calcular la similitud. | `5` |
+
+Ejemplo de ejecución modificando ambos parámetros:
+
+```bash
+python3 src/codeguard_py.py ejemplos/entrada_original.py ejemplos/entrada_plagio_camuflado.py --umbral 75.0 --ngramas 5
+```
+
+## 7. Archivos de salida generados
+
+Por cada evaluación, CodeGuard-Py genera dos archivos mediante `TokenStreamRewriter`. Estos pueden descargarse desde la interfaz web o consultarse en el directorio `ejemplos/salidas/` cuando se utiliza la CLI.
+
+### 1. Archivo canonizado
+
+**Nombre:** `canonizado_<archivo>.py`
+
+Genera una versión estandarizada y depurada del código evaluado. Sus principales características son:
+
+- Renombra las funciones mediante identificadores normalizados (`FUNC_i`).
+- Estandariza los parámetros (`PARAM_i`).
+- Estandariza las variables locales activas (`LOCAL_i`).
+- Omite los comentarios del código fuente.
+- Elimina automáticamente las asignaciones correspondientes a variables locales sin uso detectado.
+
+### 2. Archivo anotado
+
+**Nombre:** `anotado_<archivo>.py`
+
+Conserva el código fuente original y agrega comentarios de alerta encima de las funciones que superan el umbral de similitud establecido.
+
+Ejemplo de alerta generada:
+
+```python
+# [ALERTA DE PLAGIO: 85.5% de similitud con 'busqueda_binaria']
+def encontrar_elemento(arreglo, valor_buscado):
+    ...
+```
+
+## 8. Solución de problemas frecuentes (Troubleshooting)
+
+A continuación, se describen algunos inconvenientes que pueden presentarse durante la instalación y ejecución del proyecto.
+
+### Problema 1. Error `externally-managed-environment` (PEP 668)
+
+**Causa:** algunas distribuciones Linux modernas, como Arch Linux, Ubuntu 23.04+ y Debian 12+, restringen las instalaciones globales mediante `pip` para proteger los paquetes administrados por el sistema.
+
+**Solución:** crear y activar un entorno virtual siguiendo los pasos de la sección 4:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Posteriormente, instalar las dependencias dentro del entorno virtual.
+
+### Problema 2. Error `HTTP Error 400: Bad Request` o `FileNotFoundError: .../.m2/repository`
+
+**Causa:** `antlr4-tools` puede presentar inconvenientes al consultar automáticamente la versión disponible de ANTLR en Maven Central.
+
+**Solución:** definir manualmente la variable de entorno `ANTLR4_TOOLS_ANTLR_VERSION`, utilizando la misma versión instalada de `antlr4-python3-runtime`.
+
+Para consultar la versión instalada:
+
+```bash
+pip show antlr4-python3-runtime
+```
+
+Ejemplo de compilación:
+
+```bash
+ANTLR4_TOOLS_ANTLR_VERSION=4.13.2 antlr4 -Dlanguage=Python3 -o ../src/generated Python3Lexer.g4 Python3Parser.g4
+```
+
+### Problema 3. Error: no se encontraron los archivos compilados de la gramática
+
+**Causa:** faltan los archivos generados por ANTLR o las clases base necesarias para el funcionamiento del Lexer y Parser.
+
+**Solución:** verificar que el directorio `src/generated/` contenga los siguientes archivos:
+
+- `Python3Lexer.py`
+- `Python3Parser.py`
+- `Python3ParserListener.py`
+- `Python3LexerBase.py`
+- `Python3ParserBase.py`
+
+Si faltan, seguir el procedimiento de compilación descrito en la sección 5.
+
+### Problema 4. Error relacionado con Java durante la compilación de los archivos `.g4`
+
+**Causa:** `antlr4-tools` utiliza el archivo `.jar` oficial de ANTLR para compilar la gramática, por lo que necesita una instalación de Java.
+
+**Solución:** instalar OpenJDK según la distribución utilizada.
+
+Arch Linux / Manjaro:
+
+```bash
+sudo pacman -S jdk-openjdk
+```
+
+Ubuntu / Debian:
+
+```bash
+sudo apt install default-jre
+```
+
+Como alternativa, si no se necesita modificar la gramática, se pueden utilizar directamente los archivos previamente compilados incluidos en `src/generated/`.
+
+---
+
+## 9. Tecnologías utilizadas
+
+| Tecnología | Función dentro del proyecto |
+|---|---|
+| Python 3 | Lenguaje de programación principal. |
+| ANTLR v4 | Generación del Lexer, Parser y Listener para analizar código Python. |
+| grammars-v4 | Fuente de la gramática de Python 3 utilizada por ANTLR. |
+| TokenStreamRewriter | Manipulación y generación de las versiones modificadas del código fuente. |
+| Streamlit | Desarrollo de la interfaz gráfica web. |
+| Coeficiente de Jaccard | Medición de similitud entre las huellas estructurales de las funciones. |
+
+---
+
+**CodeGuard-Py**  
+Proyecto académico desarrollado para la asignatura Lenguajes de Programación de la Universidad Nacional de Colombia.
